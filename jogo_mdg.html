@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MDG Automação - Diagnóstico Industrial (V11.60)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+            margin: 0; padding: 10px;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+            background-image: url('industrial_pattern.png');
+            background-repeat: repeat; background-position: center;
+            background-color: #0d1317; overflow: hidden;
+        }
+
+        .container {
+            max-width: 1150px; width: 99%; max-height: 98vh;
+            background: linear-gradient(145deg, #1a252f, #11181f);
+            border-radius: 14px; padding: 15px; border: 3px solid #00a8ff;
+            box-shadow: 0 0 25px rgba(0, 168, 255, 0.4), inset 0 0 15px rgba(0, 0, 0, 0.8);
+            position: relative; display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        /* PLACAR DE MOEDAS NO TOPO */
+        .placar-moedas {
+            position: absolute; top: 15px; right: 20px; z-index: 40;
+            background: rgba(17, 24, 31, 0.9); border: 2px solid #f1c40f; border-radius: 20px;
+            padding: 6px 14px; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 0 15px rgba(241, 196, 15, 0.4); font-family: 'Orbitron', sans-serif;
+            color: #f1c40f; font-size: 14px; font-weight: 800;
+        }
+
+        .icone-mini {
+            height: 32px; width: auto; object-fit: contain; vertical-align: middle;
+            margin-left: 6px; margin-right: 2px; background: transparent; border: none; padding: 0;
+            filter: drop-shadow(0 0 4px rgba(0, 168, 255, 0.7));
+        }
+
+        .icone-estacao2 {
+            height: 52px; width: auto; object-fit: contain; vertical-align: middle;
+            margin-left: 2px; margin-right: 2px; background: transparent !important; border: none !important; padding: 0 !important;
+            filter: drop-shadow(0 0 6px rgba(0, 168, 255, 0.9));
+        }
+
+        .icone-grande {
+            height: 42px; width: auto; object-fit: contain; vertical-align: middle;
+            margin-left: 6px; margin-right: 2px; background: transparent !important; border: none !important; padding: 0 !important;
+            filter: drop-shadow(0 0 5px rgba(0, 168, 255, 0.8));
+        }
+
+        #telaIntroducao {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('fundo_intro1.jpg'); background-size: cover; background-position: center;
+            filter: saturate(1.3) brightness(1.05); border-radius: 12px; z-index: 100;
+            display: flex; align-items: center; justify-content: center; padding: 15px; overflow: hidden;
+            transition: background-image 0.5s ease-in-out;
+        }
+
+        #telaIntroducao::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.25); z-index: 1;
+        }
+
+        .intro-content {
+            display: flex; align-items: center; justify-content: center; gap: 15px;
+            max-width: 1040px; width: 100%; height: 100%; position: relative; z-index: 2;
+        }
+
+        .intro-avatar { height: 560px; flex-shrink: 0; filter: drop-shadow(0 8px 15px rgba(0, 0, 0, 0.6)); display: flex; align-items: center; }
+        .intro-avatar img { height: 100%; width: auto; max-height: 560px; object-fit: contain; display: block; }
+
+        .intro-content.pos-1-esquerda { flex-direction: row; }
+        .intro-content.pos-2-direita { flex-direction: row-reverse; }
+        .intro-content.pos-2-direita .balao-fala::before { left: auto; right: -18px; border-right: none; border-left: 18px solid #00a8ff; }
+        .intro-content.pos-3-esquerda { flex-direction: row; }
+        .intro-content.pos-3-esquerda .balao-fala::before { left: -18px; right: auto; border-left: none; border-right: 18px solid #00a8ff; }
+
+        .balao-fala {
+            background-color: rgba(17, 24, 31, 0.92); border: 3px solid #00a8ff;
+            border-radius: 22px; padding: 22px; box-shadow: 0 0 35px rgba(0, 168, 255, 0.5);
+            position: relative; flex: 1; max-width: 520px; max-height: 90vh;
+            display: flex; flex-direction: column; justify-content: space-between; z-index: 2; backdrop-filter: blur(8px);
+        }
+
+        .balao-fala::before {
+            content: ''; position: absolute; left: -18px; top: 50%; transform: translateY(-50%);
+            border-top: 12px solid transparent; border-bottom: 12px solid transparent; border-right: 18px solid #00a8ff;
+        }
+
+        .titulo-alerta-amarelo { font-family: 'Orbitron', sans-serif; color: #f1c40f !important; text-shadow: 0 0 10px rgba(241, 196, 15, 0.8); margin: 0 0 8px 0; font-size: 20px; text-transform: uppercase; }
+        .titulo-alerta-laranja { font-family: 'Orbitron', sans-serif; color: #ff9f43 !important; text-shadow: 0 0 10px rgba(255, 159, 67, 0.8); margin: 0 0 8px 0; font-size: 20px; text-transform: uppercase; }
+        .titulo-alerta-vermelho { font-family: 'Orbitron', sans-serif; color: #ee5253 !important; text-shadow: 0 0 10px rgba(238, 82, 83, 0.8); margin: 0 0 8px 0; font-size: 20px; text-transform: uppercase; }
+
+        .balao-fala p { font-size: 18px; line-height: 1.35; color: #ffffff; margin: 0 0 8px 0; font-weight: 600; }
+        .pergunta-destaque-amarela { color: #f1c40f; font-weight: 700; font-size: 18px; margin-top: 6px; display: block; }
+
+        .checklist-pecas-vertical { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; max-height: 220px; overflow-y: auto; }
+        .item-peca { padding: 6px 12px; border-radius: 6px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+        .peca-1 { background-color: rgba(39, 174, 96, 0.35); border: 2px solid #2ecc71; color: #2ecc71; }
+        .peca-2 { background-color: rgba(230, 126, 34, 0.35); border: 2px solid #e67e22; color: #e67e22; }
+        .peca-3 { background-color: rgba(0, 210, 211, 0.35); border: 2px solid #00d2d3; color: #00d2d3; }
+        .peca-4 { background-color: rgba(231, 76, 60, 0.35); border: 2px solid #e74c3c; color: #e74c3c; }
+        .peca-5 { background-color: rgba(155, 89, 182, 0.35); border: 2px solid #9b59b6; color: #9b59b6; }
+        .peca-6 { background-color: rgba(241, 196, 15, 0.35); border: 2px solid #f1c40f; color: #f1c40f; }
+
+        .btn-seta-avancar {
+            align-self: flex-end; background: linear-gradient(135deg, #f1c40f, #a3cb38); color: #0d1317;
+            border: none; padding: 10px 22px; border-radius: 30px; font-family: 'Orbitron', sans-serif;
+            font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 0 18px rgba(241, 196, 15, 0.6); transition: transform 0.2s, background 0.3s; margin-top: 8px;
+        }
+        .btn-verde-neon-vibrante { background: linear-gradient(135deg, #2ecc71, #2ecc71) !important; color: #0d1317 !important; box-shadow: 0 0 25px rgba(46, 204, 113, 0.9) !important; }
+        .btn-seta-avancar:hover { transform: scale(1.05); }
+
+        .seta-pisca { font-size: 18px; animation: piscarSeta 0.8s infinite alternate; }
+        @keyframes piscarSeta { 0% { opacity: 0.3; transform: translateX(0); } 100% { opacity: 1; transform: translateX(6px); } }
+
+        .header { text-align: center; border-bottom: 2px solid rgba(0, 168, 255, 0.3); padding-bottom: 6px; margin-bottom: 10px; }
+        .header h1 {
+            font-family: 'Orbitron', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: 2px; margin: 0; text-transform: uppercase;
+            background: linear-gradient(180deg, #ffffff 0%, #00d2d3 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 2px 10px rgba(0, 210, 211, 0.3);
+        }
+        .header p { margin: 3px 0 0 0; font-size: 15px; font-weight: 600; color: #e0e6ed; }
+        .header p span { color: #00d2d3; font-weight: 700; }
+
+        .tabuleiro-container {
+            position: relative; width: 100%; max-height: 82vh; border-radius: 10px; overflow: visible; 
+            border: 2px solid #34495e; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); background-color: #1a252f;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .tabuleiro-img { width: 100%; height: auto; max-height: 82vh; object-fit: contain; display: block; border-radius: 8px; }
+
+        #pets-centro-animado {
+            position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%) scale(0.6); width: 42%;
+            z-index: 95; opacity: 0; pointer-events: none; transition: opacity 0.75s ease-in-out, transform 0.75s ease-in-out; filter: drop-shadow(0 0 15px #2ecc71);
+        }
+        #pets-centro-animado.visivel { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        #pets-centro-animado img { width: 100%; height: auto; display: block; }
+
+        .ponto-estacao {
+            position: absolute; width: 32px; height: 32px; border-radius: 50%; background-color: rgba(127, 140, 141, 0.4);
+            border: 2px solid rgba(255,255,255,0.7); color: rgba(255,255,255,0.9); font-weight: bold; font-size: 13px;
+            display: flex; justify-content: center; align-items: center; transform: translate(-50%, -50%);
+            z-index: 5; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .ponto-estacao:hover { transform: translate(-50%, -50%) scale(1.2); }
+        .ponto-estacao.ativa { border-color: #00d2d3; box-shadow: 0 0 15px #00d2d3; background-color: rgba(0, 210, 211, 0.6); animation: pulsoAtivo 1.5s infinite alternate; }
+        @keyframes pulsoAtivo { 0% { box-shadow: 0 0 8px #00d2d3; } 100% { box-shadow: 0 0 20px #00d2d3; } }
+        .ponto-estacao.concluida { background-color: rgba(39, 174, 96, 0.8); border-color: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+
+        #avatar-jogador {
+            position: absolute; height: 135px; top: 50%; left: 28%; transform: translate(-50%, -82%); z-index: 10;
+            transition: top 1.2s ease-in-out, left 1.2s ease-in-out; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.8)); pointer-events: none;
+        }
+        #avatar-jogador img { height: 100%; width: auto; display: block; }
+        #avatar-jogador.andando img { animation: passosCaminhada 0.25s infinite alternate ease-in-out; }
+        @keyframes passosCaminhada { 0% { transform: translateY(0px) rotate(-3deg); } 100% { transform: translateY(-8px) rotate(3deg); } }
+
+        /* MODAL ALINHADO NO TOPO E EXPANSIVO */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.78); backdrop-filter: blur(4px); z-index: 30; display: none;
+            justify-content: center; align-items: flex-start; padding-top: 5px; border-radius: 12px; cursor: pointer; 
+        }
+
+        .modal-card {
+            background-color: #11181f; border-radius: 12px; padding: 10px 14px; max-width: 1120px; width: 99%;
+            border: 2px solid #00a8ff; box-shadow: 0 0 30px rgba(0, 168, 255, 0.6); animation: modalEntrada 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: default; position: relative; max-height: 97vh; overflow-y: auto;
+        }
+
+        .modal-card.fundo-estacao-6 {
+            background-image: linear-gradient(rgba(17, 24, 31, 0.88), rgba(17, 24, 31, 0.88)), url('fundo_intro2.jpg');
+            background-size: cover; background-position: center;
+        }
+
+        .modal-card.fundo-estacao-7 {
+            background-image: linear-gradient(rgba(13, 19, 23, 0.85), rgba(13, 19, 23, 0.85)), url('fundo_intro3.jpg');
+            background-size: cover; background-position: center; border: 3px solid #f1c40f;
+            box-shadow: 0 0 40px rgba(241, 196, 15, 0.5);
+        }
+
+        .modal-card.fundo-estacao-8 {
+            background-image: linear-gradient(rgba(13, 19, 23, 0.88), rgba(13, 19, 23, 0.88)), url('fundo_intro2.jpg');
+            background-size: cover; background-position: center; border: 3px solid #ffffff;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-fechar { position: absolute; top: 8px; right: 12px; background: transparent; border: none; color: #7f8c8d; font-size: 20px; font-weight: bold; cursor: pointer; transition: color 0.2s; z-index: 10; }
+        .btn-fechar:hover { color: #e74c3c; }
+
+        @keyframes modalEntrada { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .avatar-mini { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; background-color: rgba(26, 37, 47, 0.9); padding: 4px 8px; border-radius: 8px; border-left: 4px solid #ffffff; }
+        .avatar-mini img { width: 36px; height: 48px; object-fit: contain; border-radius: 6px; border: 2px solid #ffffff; background-color: #0d1317; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5)); }
+        .avatar-mini-texto { flex: 1; }
+        
+        .texto-pergunta-branco { color: #ffffff !important; font-size: 12px !important; line-height: 1.1 !important; font-weight: 600 !important; }
+
+        .opcoes { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+        .btn-opcao {
+            background-color: #1b3a4b; color: white; border: 1px solid #00a8ff; padding: 8px 12px; font-size: 14px; font-family: 'Rajdhani', sans-serif;
+            font-weight: 600; border-radius: 6px; cursor: pointer; text-align: left; transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+        .btn-opcao:hover { background-color: #00a8ff; color: #0d1317; }
+        .btn-opcao.correta { background-color: #27ae60 !important; color: #ffffff !important; border-color: #2ecc71 !important; box-shadow: 0 0 15px #2ecc71 !important; }
+        .btn-opcao.incorreta { background-color: #c0392b !important; color: #ffffff !important; border-color: #e74c3c !important; box-shadow: 0 0 15px #e74c3c !important; }
+
+        /* TELA DE CADASTRO DE NOME */
+        .modal-cadastro {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 15px; gap: 12px;
+        }
+        .texto-cadastro-industrial {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 15px;
+            color: #f1c40f;
+            text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);
+            letter-spacing: 1px;
+            margin: 0;
+            line-height: 1.4;
+            text-transform: uppercase;
+        }
+        .input-nome-usuario {
+            background: #1b3a4b; border: 2px solid #00a8ff; border-radius: 8px; padding: 12px 18px;
+            color: white; font-family: 'Rajdhani', sans-serif; font-size: 18px; font-weight: 700; width: 100%; max-width: 400px;
+            text-align: center; outline: none; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        .input-nome-usuario:focus { border-color: #f1c40f; box-shadow: 0 0 15px rgba(241, 196, 15, 0.5); }
+
+        /* TELA FINAL COM CUPOM E WHATSAPP */
+        .card-final-cupom {
+            background: linear-gradient(135deg, #1b3a4b, #11181f); border: 3px solid #2ecc71; border-radius: 12px;
+            padding: 20px; text-align: center; box-shadow: 0 0 30px rgba(46, 204, 113, 0.5);
+        }
+        .cupom-destaque {
+            background: rgba(0, 0, 0, 0.5); border: 2px dashed #f1c40f; border-radius: 8px;
+            padding: 15px; margin: 15px 0; font-family: 'Orbitron', sans-serif; font-size: 24px; color: #f1c40f;
+            text-shadow: 0 0 10px rgba(241, 196, 15, 0.8); letter-spacing: 2px;
+        }
+        .btn-whatsapp {
+            background: linear-gradient(135deg, #27ae60, #2ecc71); color: #0d1317; border: none;
+            padding: 12px 24px; border-radius: 30px; font-family: 'Orbitron', sans-serif; font-size: 15px;
+            font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 10px;
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.8); text-transform: uppercase; transition: transform 0.2s;
+        }
+        .btn-whatsapp:hover { transform: scale(1.05); }
+
+        /* ESTAÇÃO 7: PAINEL DE DECODIFICAÇÃO COM PAINEL DE LETRAS DESCARTADAS AO LADO */
+        .painel-ruido-wrapper { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; align-items: center; width: 100%; }
+        .painel-layout-flex { display: flex; gap: 15px; align-items: flex-start; justify-content: center; width: 100%; }
+        
+        .grid-painel-ruido { display: grid; grid-template-columns: repeat(15, 38px); grid-template-rows: repeat(4, 38px); gap: 3px; background: rgba(13, 19, 23, 0.95); padding: 10px; border: 2px solid #f1c40f; border-radius: 10px; box-shadow: 0 0 20px rgba(241, 196, 15, 0.4); }
+        .celula-ruido { background-color: rgba(27, 58, 75, 0.9); color: #ffffff; font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; border-radius: 5px; border: 1.5px solid rgba(0, 210, 211, 0.5); cursor: pointer; user-select: none; transition: transform 0.15s, background-color 0.2s; text-shadow: 0 0 6px rgba(255,255,255,0.8); }
+        .celula-ruido:hover { transform: scale(1.08); background-color: #00a8ff; color: #0d1317; border-color: #f1c40f; }
+        .celula-ruido.clicada-certa { background-color: #27ae60 !important; color: #ffffff !important; border-color: #2ecc71 !important; pointer-events: none; text-shadow: 0 0 8px rgba(255,255,255,0.9); }
+        
+        .painel-letras-descartadas { background: rgba(17, 24, 31, 0.95); border: 2px solid #e74c3c; border-radius: 10px; padding: 10px; width: 210px; box-shadow: 0 0 15px rgba(231, 76, 60, 0.3); display: flex; flex-direction: column; gap: 6px; }
+        .painel-letras-descartadas h4 { font-family: 'Orbitron', sans-serif; font-size: 11px; color: #e74c3c; margin: 0; text-align: center; text-transform: uppercase; text-shadow: 0 0 6px rgba(231,76,60,0.6); }
+        .container-chips-lixo { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+        .chip-lixo { background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; color: #ff7675; font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 800; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 4px; }
+
+        .palavras-destrino-container { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 820px; }
+        .linha-palavra-alvo { background: rgba(17, 24, 31, 0.88); border: 2px solid #00a8ff; border-radius: 8px; padding: 6px 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 0 10px rgba(0, 168, 255, 0.3); }
+        .linha-palavra-alvo span.titulo-alvo { font-family: 'Orbitron', sans-serif; font-size: 12px; color: #f1c40f; text-shadow: 0 0 6px rgba(241,196,15,0.6); }
+        .caixas-letras-alvo { display: flex; gap: 4px; }
+        .letra-slot { width: 25px; height: 30px; background: #0d1317; border: 2px solid #00d2d3; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-family: 'Orbitron', sans-serif; font-size: 14px; color: #2ecc71; font-weight: 800; text-shadow: 0 0 8px rgba(46,204,113,0.8); }
+
+        /* ESTAÇÃO 8: ESTILO LIMPO E DIRETO (FONTE CLÁSSICA) */
+        .coordenadas-wrapper { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 2px; width: 100%; }
+        
+        .caixas-resposta-topo { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; background: rgba(13, 19, 23, 0.9); padding: 6px 10px; border: 2px solid #ffffff; border-radius: 8px; width: 100%; max-width: 1080px; box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); }
+        .bloco-resposta-coord { display: flex; flex-direction: column; align-items: center; background: #0d1317; border: 2px solid #ffffff; border-radius: 5px; width: 27px; height: 46px; justify-content: space-between; padding: 2px 0; }
+        .coord-alvo-txt { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #f1c40f; font-weight: 700; }
+        .letra-preenchida-txt { font-family: 'Segoe UI', Arial, sans-serif; font-size: 15px; color: #2ecc71; font-weight: 800; }
+
+        .grid-matriz-coord { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; background: rgba(13, 19, 23, 0.95); padding: 8px; border: 2px solid #ffffff; border-radius: 10px; box-shadow: 0 0 25px rgba(255, 255, 255, 0.25); width: 100%; max-width: 1080px; }
+        .cabecalho-coluna-num { font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #f1c40f; font-weight: 700; text-align: center; display: flex; align-items: center; justify-content: center; padding: 3px 0; background: rgba(255, 255, 255, 0.1); border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.25); }
+        .rotulo-linha-letra { font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #f1c40f; font-weight: 700; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.1); border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.25); }
+        
+        .celula-matriz-item { background-color: rgba(27, 58, 75, 0.9); color: #ffffff; font-family: 'Segoe UI', Arial, sans-serif; font-size: 16px; font-weight: 700; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 1.5px solid rgba(255, 255, 255, 0.4); cursor: pointer; user-select: none; transition: transform 0.15s, background-color 0.2s; }
+        .celula-matriz-item:hover { transform: scale(1.06); background-color: #00a8ff; color: #0d1317; border-color: #f1c40f; }
+
+        /* OUTRAS ESTAÇÕES LÚDICAS (9, 10) */
+        .titulo-ludico { font-family: 'Orbitron', sans-serif; font-size: 18px; color: #f1c40f; text-align: center; margin: 4px 0 8px 0; text-transform: uppercase; text-shadow: 0 0 10px rgba(241, 196, 15, 0.8); }
+        .sub-ludico { font-size: 14px; color: #00d2d3; text-align: center; margin-bottom: 10px; font-weight: 700; }
+        .labirinto-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+        .caminho-opcao {
+            background: linear-gradient(135deg, #1b3a4b, #11181f); border: 2px solid #00a8ff; border-radius: 10px;
+            padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s; color: #ffffff; font-family: 'Orbitron', sans-serif; font-size: 14px;
+        }
+        .caminho-opcao:hover { border-color: #f1c40f; transform: scale(1.03); box-shadow: 0 0 15px rgba(241, 196, 15, 0.5); }
+        .caminho-opcao.correto { background: #27ae60 !important; border-color: #2ecc71 !important; box-shadow: 0 0 20px #2ecc71 !important; }
+        .caminho-opcao.errado { background: #c0392b !important; border-color: #e74c3c !important; box-shadow: 0 0 20px #e74c3c !important; }
+
+        .palavra-escondida-container { display: flex; justify-content: center; gap: 8px; margin: 15px 0; }
+        .letra-caixa {
+            width: 40px; height: 50px; background: #1b3a4b; border: 2px solid #00a8ff; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center; font-family: 'Orbitron', sans-serif; font-size: 24px; color: #f1c40f; font-weight: 800;
+        }
+        .teclado-letras { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; max-width: 500px; margin: 0 auto; }
+        .btn-tecla {
+            background: #11181f; border: 1px solid #00d2d3; color: #00d2d3; padding: 10px; border-radius: 6px;
+            font-family: 'Orbitron', sans-serif; font-weight: 700; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-tecla:hover { background: #00d2d3; color: #0d1317; }
+        .btn-tecla.usada { opacity: 0.3; pointer-events: none; }
+
+        .tesouro-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
+        .tesouro-card {
+            background: linear-gradient(135deg, #1b3a4b, #11181f); border: 2px solid #a55eea; border-radius: 10px;
+            padding: 14px; text-align: center; cursor: pointer; color: #ffffff; font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700;
+            transition: all 0.2s; box-shadow: 0 0 10px rgba(165, 94, 234, 0.3);
+        }
+        .tesouro-card:hover { border-color: #f1c40f; transform: scale(1.02); box-shadow: 0 0 20px rgba(241, 196, 15, 0.6); }
+        .tesouro-card.correto { background: #27ae60 !important; border-color: #2ecc71 !important; box-shadow: 0 0 25px #2ecc71 !important; }
+        .tesouro-card.errado { background: #c0392b !important; border-color: #e74c3c !important; box-shadow: 0 0 25px #e74c3c !important; }
+
+        /* JOGO DA MEMÓRIA INDUSTRIAL (ESTAÇÃO 6) */
+        .titulo-jogo-memoria { font-family: 'Orbitron', sans-serif; font-size: 20px; color: #f1c40f; text-align: center; margin: 5px 0 10px 0; text-transform: uppercase; text-shadow: 0 0 12px rgba(241, 196, 15, 0.9); letter-spacing: 1.5px; }
+        .memoria-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 5px; justify-content: center; }
+        .carta-memoria { background: linear-gradient(135deg, #1b3a4b, #11181f); border: 2px solid #00a8ff; border-radius: 10px; height: 95px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 10px rgba(0, 168, 255, 0.3); transition: all 0.2s ease; position: relative; overflow: hidden; }
+        .carta-memoria:hover { border-color: #f1c40f; transform: scale(1.03); box-shadow: 0 0 15px rgba(241, 196, 15, 0.6); }
+        .carta-verso-mdg { background-color: #ffffff !important; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; border-radius: 8px; box-shadow: inset 0 0 8px rgba(0,0,0,0.15); }
+        .texto-verso-mdg { font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 800; color: #0d1317; letter-spacing: 2px; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .carta-memoria.revelada { background: rgba(17, 24, 31, 0.95); border-color: #00d2d3; box-shadow: 0 0 15px rgba(0, 210, 211, 0.5); }
+        .carta-memoria.combinada { background: rgba(39, 174, 96, 0.25); border-color: #2ecc71; box-shadow: 0 0 15px #2ecc71; cursor: default; }
+        .icone-grande-memoria { height: 68px; width: auto; object-fit: contain; background: transparent !important; border: none !important; padding: 0 !important; filter: drop-shadow(0 0 8px rgba(0, 168, 255, 0.9)); }
+
+        /* PAINEL INDUSTRIAL DE ABERTURA (ESTAÇÃO 5) */
+        .painel-industrial-abertura { background: linear-gradient(135deg, #121c24, #0b1116); border: 3px solid #00d2d3; border-radius: 12px; padding: 15px 20px; margin-top: 8px; box-shadow: 0 0 25px rgba(0, 210, 211, 0.3), inset 0 0 15px rgba(0, 0, 0, 0.8); display: flex; flex-direction: column; gap: 10px; position: relative; }
+        .painel-industrial-abertura::before { content: 'MDG-CTRL // RACK 05'; position: absolute; top: -10px; left: 20px; background: #00d2d3; color: #0d1317; font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: 4px; letter-spacing: 1px; }
+        .painel-status-linha { display: flex; align-items: center; justify-content: space-between; background: rgba(0, 0, 0, 0.4); padding: 8px 12px; border-radius: 6px; border-left: 4px solid #f1c40f; }
+        .painel-status-texto { font-family: 'Orbitron', sans-serif; font-size: 12px; color: #f1c40f; letter-spacing: 0.5px; margin: 0; }
+        .led-status { width: 12px; height: 12px; background-color: #f1c40f; border-radius: 50%; box-shadow: 0 0 10px #f1c40f; animation: piscarLed 1s infinite alternate; }
+        @keyframes piscarLed { 0% { opacity: 0.4; } 100% { opacity: 1; box-shadow: 0 0 18px #f1c40f; } }
+        .btn-painel-eletrico { background: linear-gradient(135deg, #00d2d3, #00a8ff); color: #0d1317; border: 2px solid #ffffff; padding: 12px 18px; border-radius: 8px; font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 800; cursor: pointer; text-align: center; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 0 20px rgba(0, 210, 211, 0.6); transition: all 0.25s ease; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-painel-eletrico:hover { background: linear-gradient(135deg, #2ecc71, #00d2d3); transform: scale(1.02); box-shadow: 0 0 30px rgba(46, 204, 113, 0.8); }
+
+        /* TELA DE TRANSIÇÃO ESTAÇÃO 3 */
+        #telaTransicaoEst3 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('fundo_intro1.jpg'); background-size: cover; background-position: center; filter: saturate(1.3) brightness(1.15); z-index: 60; display: none; justify-content: center; align-items: center; border-radius: 12px; animation: fadeInTrans 0.4s ease-in-out; }
+        #telaTransicaoEst3::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13, 19, 23, 0.45); z-index: 1; }
+        .card-transicao { position: relative; z-index: 2; background: rgba(17, 24, 31, 0.95); border: 4px solid #ee5253; border-radius: 20px; padding: 40px 50px; max-width: 850px; width: 92%; text-align: center; box-shadow: 0 0 50px rgba(238, 82, 83, 0.8), inset 0 0 25px rgba(238, 82, 83, 0.3); backdrop-filter: blur(8px); }
+        .card-transicao h2 { font-family: 'Orbitron', sans-serif; font-size: 32px; color: #f1c40f; margin: 0 0 20px 0; text-shadow: 0 0 20px rgba(241, 196, 15, 0.9); text-transform: uppercase; letter-spacing: 2px; }
+        .card-transicao p { font-family: 'Rajdhani', sans-serif; font-size: 26px; font-weight: 700; color: #ffffff; line-height: 1.45; margin: 0; text-shadow: 0 2px 10px rgba(0,0,0,0.9); }
+        @keyframes fadeInTrans { from { opacity: 0; } to { opacity: 1; } }
+
+        /* TELA LIGAR OS PONTOS (ESTAÇÃO 4) */
+        #telaLigarPontos { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('fundo_intro3.jpg'); background-size: cover; background-position: center; z-index: 70; display: none; flex-direction: column; justify-content: space-between; padding: 25px; border-radius: 28px; box-shadow: inset 0 0 50px rgba(0,0,0,0.9); user-select: none; }
+        #telaLigarPontos::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13, 19, 23, 0.88); backdrop-filter: blur(6px); z-index: 1; border-radius: 28px; }
+        .lp-header, .lp-workspace { position: relative; z-index: 2; }
+        .lp-header { text-align: center; border-bottom: 2px solid #00a8ff; padding-bottom: 12px; position: relative; }
+        .lp-header h2 { font-family: 'Orbitron', sans-serif; color: #f1c40f; font-size: 24px; margin: 0; text-shadow: 0 0 12px rgba(241,196,15,0.8); }
+        .lp-header p { font-family: 'Rajdhani', sans-serif; color: #ffffff; font-size: 18px; margin: 6px 0 0 0; font-weight: 700; text-shadow: 0 0 10px rgba(255,255,255,0.4); }
+        .lp-workspace { display: flex; justify-content: space-between; align-items: center; flex: 1; position: relative; padding: 10px 80px; }
+        .lp-coluna { display: flex; flex-direction: column; gap: 18px; width: 390px; z-index: 3; }
+        .lp-bloco { border: 2px solid #00a8ff; border-radius: 16px; padding: 12px 18px; color: #ffffff; font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 0 15px rgba(0,0,0,0.5); transition: transform 0.2s; position: relative; }
+        .lp-bloco.origem-compressor { background: linear-gradient(135deg, rgba(0, 168, 255, 0.25), rgba(17, 24, 31, 0.95)); border-color: #00a8ff; }
+        .lp-bloco.origem-lubrifil { background: linear-gradient(135deg, rgba(255, 159, 67, 0.25), rgba(17, 24, 31, 0.95)); border-color: #ff9f43; }
+        .lp-bloco.origem-valvula { background: linear-gradient(135deg, rgba(155, 89, 182, 0.25), rgba(17, 24, 31, 0.95)); border-color: #9b59b6; }
+        .lp-bloco.origem-cilindro { background: linear-gradient(135deg, rgba(46, 204, 113, 0.25), rgba(17, 24, 31, 0.95)); border-color: #2ecc71; }
+        .lp-bloco.destino-lubrifil { background: linear-gradient(135deg, rgba(241, 196, 15, 0.25), rgba(17, 24, 31, 0.95)); border-color: #f1c40f; }
+        .lp-bloco.destino-valvula { background: linear-gradient(135deg, rgba(0, 210, 211, 0.25), rgba(17, 24, 31, 0.95)); border-color: #00d2d3; }
+        .lp-bloco.destino-cilindro { background: linear-gradient(135deg, rgba(231, 76, 60, 0.25), rgba(17, 24, 31, 0.95)); border-color: #e74c3c; }
+        .lp-bloco.destino-fim { background: linear-gradient(135deg, rgba(52, 152, 219, 0.25), rgba(17, 24, 31, 0.95)); border-color: #3498db; }
+        .lp-bloco.conectado { opacity: 0.85; filter: drop-shadow(0 0 10px #2ecc71); }
+        .lp-ponto { width: 22px; height: 22px; border-radius: 50%; background-color: #ffffff; border: 3px solid #00a8ff; box-shadow: 0 0 12px #00a8ff; flex-shrink: 0; cursor: crosshair; transition: transform 0.2s, background-color 0.2s; }
+        .lp-ponto:hover { transform: scale(1.35); background-color: #f1c40f; }
+        #lpSvgCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+
+        /* TELA PAINEL ELETROPNEUMÁTICO (ESTAÇÃO 5) */
+        #telaPainelEletropneumatico { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('fundo_intro2.jpg'); background-size: cover; background-position: center; z-index: 80; display: none; flex-direction: column; justify-content: flex-start; padding: 20px 30px; border-radius: 28px; box-shadow: inset 0 0 60px rgba(0,0,0,0.9); }
+        #telaPainelEletropneumatico::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13, 19, 23, 0.90); backdrop-filter: blur(8px); z-index: 1; border-radius: 28px; }
+        .pe-header, .pe-workspace { position: relative; z-index: 2; }
+        .pe-header { text-align: center; border-bottom: 2px solid #00d2d3; padding-bottom: 10px; position: relative; margin-bottom: 12px; }
+        .pe-header h2 { font-family: 'Orbitron', sans-serif; color: #00d2d3; font-size: 24px; margin: 0; text-shadow: 0 0 15px rgba(0,210,211,0.8); }
+        .pe-header p { font-family: 'Rajdhani', sans-serif; color: #ffffff; font-size: 16px; margin: 4px 0 0 0; font-weight: 600; }
+        .pe-workspace { display: flex; flex-direction: column; gap: 12px; max-width: 780px; width: 100%; margin: 0 auto; z-index: 2; }
+        .pe-problema-card { background: rgba(27, 58, 75, 0.85); border: 2px solid #f1c40f; border-radius: 12px; padding: 12px 16px; font-family: 'Orbitron', sans-serif; color: #f1c40f; font-size: 14px; text-shadow: 0 0 8px rgba(241,196,15,0.6); box-shadow: 0 0 20px rgba(241, 196, 15, 0.3); text-align: center; }
+        .pe-opcoes-grid { display: flex; flex-direction: column; gap: 10px; }
+        .pe-btn-diagnostico { background: linear-gradient(135deg, #1b3a4b, #11181f); border: 2px solid #00a8ff; border-radius: 10px; padding: 12px 16px; color: #ffffff; font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; text-align: left; transition: all 0.2s; box-shadow: 0 0 15px rgba(0,168,255,0.3); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .pe-btn-diagnostico:hover { border-color: #2ecc71; background: rgba(46, 204, 113, 0.2); transform: scale(1.01); }
+        .pe-btn-diagnostico.correto { background: #27ae60 !important; border-color: #2ecc71 !important; box-shadow: 0 0 25px #2ecc71 !important; color: #fff !important; }
+        .pe-btn-diagnostico.incorreto { background: #c0392b !important; border-color: #e74c3c !important; box-shadow: 0 0 25px #e74c3c !important; color: #fff !important; }
+
+        /* CAÇA-PALAVRAS (ESTAÇÃO 3) */
+        .caca-palavras-wrapper { display: flex; gap: 12px; margin-top: 6px; align-items: flex-start; justify-content: center; background-image: url('fundo_intro3.jpg'); background-size: cover; background-position: center; padding: 10px; border-radius: 10px; border: 2px solid #00a8ff; position: relative; overflow: hidden; box-shadow: 0 0 25px rgba(0, 168, 255, 0.4); }
+        .caca-palavras-wrapper::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13, 19, 23, 0.35); z-index: 1; }
+        .grid-letras, .lista-palavras-alvo { position: relative; z-index: 2; }
+        .grid-letras { display: grid; grid-template-columns: repeat(12, 27px); grid-template-rows: repeat(12, 27px); gap: 2px; background: rgba(13, 19, 23, 0.85); padding: 8px; border: 2px solid #00a8ff; border-radius: 8px; user-select: none; box-shadow: 0 0 15px rgba(0, 168, 255, 0.4); }
+        .celula-letra { background-color: rgba(27, 58, 75, 0.9); color: #ffffff; font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: pointer; user-select: none; transition: background-color 0.15s, color 0.15s, box-shadow 0.15s; border: 1px solid rgba(0, 168, 255, 0.4); }
+        .celula-letra.selecionada { background-color: #f1c40f !important; color: #0d1317 !important; box-shadow: 0 0 12px #f1c40f !important; }
+        .celula-letra.encontrada { background-color: #2ecc71 !important; color: #0d1317 !important; box-shadow: 0 0 12px #2ecc71 !important; }
+        .celula-letra.erro-pisca { background-color: #e74c3c !important; color: #ffffff !important; box-shadow: 0 0 12px #e74c3c !important; }
+        .lista-palavras-alvo { background: rgba(26, 37, 47, 0.92); border: 2px solid #00a8ff; border-radius: 8px; padding: 10px; width: 210px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 0 15px rgba(0, 168, 255, 0.4); }
+        .lista-palavras-alvo h4 { margin: 0 0 4px 0; font-family: 'Orbitron', sans-serif; font-size: 12px; color: #f1c40f; text-align: center; text-shadow: 0 0 8px rgba(241, 196, 15, 0.8); letter-spacing: 1px; }
+        .item-alvo-palavra { font-size: 11px; font-family: 'Orbitron', sans-serif; font-weight: 700; padding: 4px 6px; border-radius: 4px; background: rgba(27, 58, 75, 0.85); color: #f1c40f; text-shadow: 0 0 6px rgba(241, 196, 15, 0.5); transition: all 0.2s ease; border-left: 4px solid #f1c40f; display: flex; align-items: center; letter-spacing: 0.5px; }
+        .item-alvo-palavra.encontrada-alvo { background: rgba(46, 204, 113, 0.3) !important; color: #2ecc71 !important; border-left-color: #2ecc71 !important; text-shadow: 0 0 8px rgba(46, 204, 113, 0.8) !important; text-decoration: line-through; }
+    </style>
+</head>
+<body onclick="iniciarMusicaAtomatica()">
+
+<audio id="musicaFundo" loop src="musica_fundo.mp3"></audio>
+<audio id="somLatido" src="latido.mp3"></audio>
+<audio id="somErro" src="erro.mp3"></audio>
+<audio id="somMoeda" src="moeda.mp3"></audio>
+
+<div class="container">
+
+    <!-- PLACAR DE MOEDAS -->
+    <div class="placar-moedas">
+        <span>🪙 Moedas:</span> <span id="contadorMoedas">0</span> / 100
+    </div>
+
+    <div id="telaTransicaoEst3">
+        <div class="card-transicao">
+            <h2>PARABÉNS! MISSÃO CONCLUÍDA!</h2>
+            <p>Parabéns, não desista, o senhor Danilo já consertou três máquinas da fábrica! Não desista, ajude ele, bora para a estação número quatro.</p>
+        </div>
+    </div>
+
+    <div id="telaLigarPontos" onmousemove="atualizarLinhaMouse(event)" onmouseup="soltarMouseLinha()">
+        <div class="lp-header">
+            <button class="btn-fechar" onclick="fecharLigarPontos()" style="top: 0px; right: 5px;">✕</button>
+            <h2 style="color: #f1c40f;">DIAGNÓSTICO ESTAÇÃO 4</h2>
+            <p>Ligue os pontos do círculo para a opção correta</p>
+        </div>
+        
+        <div class="lp-workspace" id="lpWorkspaceDiv">
+            <svg id="lpSvgCanvas">
+                <g id="linhasConcluidas"></g>
+                <line id="linhaDinamica" x1="0" y1="0" x2="0" y2="0" stroke="#f1c40f" stroke-width="4" stroke-dasharray="6,6" style="display:none;" />
+            </svg>
+
+            <div class="lp-coluna" id="colunaOrigem">
+                <div class="lp-bloco origem-valvula" data-id="valvula">
+                    <span>Válvula Solenoide 5/2 (<img src="simb_valvula.png" class="icone-grande" alt="Válvula">)</span>
+                    <div class="lp-ponto" onmousedown="iniciarArraste(event, 'valvula')"></div>
+                </div>
+                <div class="lp-bloco origem-compressor" data-id="compressor">
+                    <span>Mangueira e Conexões (<img src="simb_mangueira.png" class="icone-grande" alt="Mangueira">)</span>
+                    <div class="lp-ponto" onmousedown="iniciarArraste(event, 'compressor')"></div>
+                </div>
+                <div class="lp-bloco origem-cilindro" data-id="cilindro">
+                    <span>Atuador / Cilindro (<img src="simb_atuador.png" class="icone-grande" alt="Atuador">)</span>
+                    <div class="lp-ponto" onmousedown="iniciarArraste(event, 'cilindro')"></div>
+                </div>
+                <div class="lp-bloco origem-lubrifil" data-id="lubrifil">
+                    <span>Conjunto Lubrifil (<img src="simb_lubrifil.png" class="icone-grande" alt="Lubrifil">)</span>
+                    <div class="lp-ponto" onmousedown="iniciarArraste(event, 'lubrifil')"></div>
+                </div>
+            </div>
+
+            <div class="lp-coluna" id="colunaDestino">
+                <div class="lp-bloco destino-lubrifil" data-alvo="lubrifil">
+                    <div class="lp-ponto" onmouseup="soltarAlvo(event, 'lubrifil')"></div>
+                    <span style="text-align: right;">Regulador / Lubrifil (<img src="simb_lubrifil.png" class="icone-grande" alt="Lubrifil">)</span>
+                </div>
+                <div class="lp-bloco destino-valvula" data-alvo="valvula">
+                    <div class="lp-ponto" onmouseup="soltarAlvo(event, 'valvula')"></div>
+                    <span style="text-align: right;">Válvula Direcional (<img src="simb_valvula.png" class="icone-grande" alt="Válvula">)</span>
+                </div>
+                <div class="lp-bloco destino-cilindro" data-alvo="cilindro">
+                    <div class="lp-ponto" onmouseup="soltarAlvo(event, 'cilindro')"></div>
+                    <span style="text-align: right;">Cilindro Pneumático (<img src="simb_atuador.png" class="icone-grande" alt="Atuador">)</span>
+                </div>
+                <div class="lp-bloco destino-fim" data-alvo="fim">
+                    <div class="lp-ponto" onmouseup="soltarAlvo(event, 'fim')"></div>
+                    <span style="text-align: right;">Ciclo Concluído (🏁)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="telaPainelEletropneumatico">
+        <div class="pe-header">
+            <button class="btn-fechar" onclick="fecharPainelEletropneumatico()" style="top: 0px; right: 5px;">✕</button>
+            <h2>DIAGNÓSTICO ESTAÇÃO 5</h2>
+            <p>Painel Eletropneumático • Análise de Falha e Sintoma Industrial</p>
+        </div>
+        <div class="pe-workspace">
+            <div class="pe-problema-card" id="peTextoProblema">Carregando falha do sistema...</div>
+            <div class="pe-opcoes-grid" id="peGridOpcoes"></div>
+        </div>
+    </div>
+
+    <!-- TELA DE INTRODUÇÃO -->
+    <div id="telaIntroducao">
+        <div id="introContentBox" class="intro-content pos-1-esquerda">
+            <div class="intro-avatar"><img src="danilo_corpo.png" alt="Danilo MDG" onerror="this.src='danilo.jpg';"></div>
+            <div class="balao-fala">
+                <div>
+                    <h2 id="introTitulo" class="titulo-alerta-amarelo">BEM-VINDO À MDG AUTOMAÇÃO</h2>
+                    <div id="introCorpoTexto"><p id="introTexto">"Oi, pessoal, tudo bem? Meu nome é Danilo, sou da MDG Automação e preciso da sua ajuda!"</p></div>
+                    <div id="introChecklist" style="display: none;">
+                        <div class="checklist-pecas-vertical">
+                            <div class="item-peca peca-1"><span>Conjunto Lubrifil</span> <img src="simb_lubrifil.png" class="icone-grande"></div>
+                            <div class="item-peca peca-2"><span>Cilindro Pneumático</span> <img src="simb_atuador.png" class="icone-grande"></div>
+                            <div class="item-peca peca-3"><span>Mangueira e Conexões</span> <img src="simb_mangueira.png" class="icone-grande"></div>
+                            <div class="item-peca peca-4"><span>Válvula Direcional</span> <img src="simb_valvula.png" class="icone-grande"></div>
+                            <div class="item-peca peca-5"><span>Conexões & Mangueiras</span></div>
+                            <div class="item-peca peca-6"><span>Sensores da Linha</span></div>
+                        </div>
+                    </div>
+                </div>
+                <button id="btnAvancarIntro" class="btn-seta-avancar" onclick="avancarIntroducao()">
+                    <span id="textoBtnIntro">AVANÇAR</span>
+                    <span class="seta-pisca">➔</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>MDG Automação</h1>
+        <p><span>Missão Técnica:</span> Clique na estação ativa para responder ao diagnóstico!</p>
+    </div>
+
+    <div class="tabuleiro-container">
+        <img src="tabuleiro.png" alt="Tabuleiro MDG" class="tabuleiro-img" onerror="if (this.src.indexOf('tabuleiro.png') != -1) this.src='tabuleiro.jpg';">
+
+        <div id="pets-centro-animado">
+            <img src="pets_centro.png" alt="Bento e Benta Celebração" onerror="if (this.src.indexOf('pets_centro.png') != -1) this.src='pets_centro.jpg';">
+        </div>
+
+        <div id="avatar-jogador">
+            <img id="imgDanilo" src="danilo_corpo.png" alt="Danilo MDG" onerror="this.src='danilo.jpg';">
+        </div>
+
+        <div id="est1" class="ponto-estacao ativa" onclick="abrirEstacao(1)">1</div>
+        <div id="est2" class="ponto-estacao" onclick="abrirEstacao(2)">2</div>
+        <div id="est3" class="ponto-estacao" onclick="abrirEstacao(3)">3</div>
+        <div id="est4" class="ponto-estacao" onclick="abrirEstacao(4)">4</div>
+        <div id="est5" class="ponto-estacao" onclick="abrirEstacao(5)">5</div>
+        <div id="est6" class="ponto-estacao" onclick="abrirEstacao(6)">6</div>
+        <div id="est7" class="ponto-estacao" onclick="abrirEstacao(7)">7</div>
+        <div id="est8" class="ponto-estacao" onclick="abrirEstacao(8)">8</div>
+        <div id="est9" class="ponto-estacao" onclick="abrirEstacao(9)">9</div>
+        <div id="est10" class="ponto-estacao" onclick="abrirEstacao(10)">10</div>
+
+        <div id="modalPergunta" class="modal-overlay" onclick="fecharModalFora(event)">
+            <div class="modal-card" id="modalCardCard" onclick="event.stopPropagation()">
+                <button class="btn-fechar" onclick="fecharModal()">✕</button>
+                <div class="avatar-mini">
+                    <img src="danilo.jpg" alt="Danilo MDG" onerror="if (this.src.indexOf('danilo.jpg') != -1) this.src='danilo.png';">
+                    <div class="avatar-mini-texto">
+                        <strong style="font-size: 14px; font-family: 'Orbitron', sans-serif;" id="titulo-estacao">DIAGNÓSTICO TÉCNICO • ESTAÇÃO 1</strong><br>
+                        <span id="texto-estacao" class="texto-pergunta-branco">Carregando pergunta...</span>
+                    </div>
+                </div>
+                <div id="opcoes-container" class="opcoes"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let etapaIntro = 1;
+    let estacaoAtual = 1;
+    let estacaoVisualizada = 1;
+    let nomeJogador = "";
+    let totalMoedas = 0;
+    let errosPorEstacao = {};
+    
+    const avatar = document.getElementById('avatar-jogador');
+    const musica = document.getElementById('musicaFundo');
+    const latido = document.getElementById('somLatido');
+    const somErro = document.getElementById('somErro');
+    const somMoeda = document.getElementById('somMoeda');
+    const modal = document.getElementById('modalPergunta');
+    const modalCard = document.getElementById('modalCardCard');
+    const telaIntroContainer = document.getElementById('telaIntroducao');
+    const telaTransicao3 = document.getElementById('telaTransicaoEst3');
+    const telaLigarPontos = document.getElementById('telaLigarPontos');
+    const telaPainelEletropneumatico = document.getElementById('telaPainelEletropneumatico');
+    let musicaIniciada = false;
+
+    const coresEstacoes = {
+        1: '#ff4d4d', 2: '#f1c40f', 3: '#2ecc71', 4: '#00d2d3', 5: '#ff9f43',
+        6: '#ff6b81', 7: '#a55eea', 8: '#ffffff', 9: '#eccc68', 10: '#eb4d4b'
+    };
+
+    const perguntasEstacoes = {
+        1: {
+            pergunta: "O compressor de ar está ligando, mas precisamos checar a alimentação principal. Qual é a faixa de pressão de trabalho correta para essa linha industrial?",
+            opcoes: [
+                { texto: "A) De 20 a 30 bar", correta: false },
+                { texto: "B) De 2 a 4 bar", correta: false },
+                { texto: "C) De 6 a 10 bar", correta: true }
+            ]
+        },
+        2: {
+            pergunta: "O manômetro do Conjunto Lubrifil (<img src='simb_lubrifil.png' class='icone-estacao2'>) está quebrado. Sabendo que o manual exige uma pressão de **120 PSI**, qual valor correto em **bar** devemos ajustar na regulagem?",
+            opcoes: [
+                { texto: "A) 8,5 bar", correta: true },
+                { texto: "B) 2,0 bar", correta: false },
+                { texto: "C) 4,0 bar", correta: false }
+            ]
+        },
+        3: {
+            tipo: "cacapalavras",
+            pergunta: "Encontre as 8 palavras fundamentais da automação industrial clicando e arrastando o mouse sobre as letras na grelha ao lado!"
+        },
+        6: {
+            tipo: "memoria",
+            pergunta: "Encontre as 3 cartas iguais de cada componente pneumático!"
+        },
+        7: {
+            tipo: "ruido",
+            pergunta: "Estação 7 • Painel Decodificado: Clique nas letras brancas para formar a palavra mestre!"
+        },
+        8: {
+            tipo: "coordenadas",
+            pergunta: "Estação 8 • Decodificador por Coordenadas: Siga as coordenadas nos quadradinhos superiores, ache o cruzamento na matriz e clique na letra correta!"
+        },
+        9: {
+            tipo: "forca",
+            pergunta: "Estação 9 • Jogo da forca. Descubra o componente que comanda a regulagem e o fluxo de ar para o cilindro!"
+        },
+        10: {
+            tipo: "tesouro",
+            pergunta: "Estação 10 • Caça-Tesouro MDG: Encontre a chave mestra para liberar a produção final da fábrica!"
+        }
+    };
+
+    function iniciarMusicaAtomatica() {
+        if (!musicaIniciada) {
+            musica.volume = 0.3;
+            musica.play().then(() => { musicaIniciada = true; }).catch(() => {});
+        }
+    }
+
+    function registrarErroEstacao(est) {
+        if (!errosPorEstacao[est]) errosPorEstacao[est] = 0;
+        errosPorEstacao[est]++;
+    }
+
+    function pontuarEstacao(est) {
+        let erros = errosPorEstacao[est] || 0;
+        let ganho = Math.max(1, 10 - erros);
+        totalMoedas += ganho;
+        document.getElementById('contadorMoedas').innerText = totalMoedas;
+        
+        if (somMoeda) {
+            somMoeda.currentTime = 0;
+            somMoeda.volume = 0.8;
+            somMoeda.play().catch(() => {});
+        }
+        return ganho;
+    }
+
+    /* FUNÇÃO GLOBAL DE COMEMORAÇÃO DOS PETS (TOCA LATIDO EXCETO NAS ESTAÇÕES 7 E 8) */
+    function comemorarComPets(numeroEstacao, callbackProxima) {
+        modal.style.display = 'none';
+        if (typeof fecharLigarPontos === 'function') fecharLigarPontos();
+        if (typeof fecharPainelEletropneumatico === 'function') fecharPainelEletropneumatico();
+
+        if (numeroEstacao !== 7 && numeroEstacao !== 8) {
+            if (latido) {
+                latido.currentTime = 0;
+                latido.volume = 0.9;
+                latido.play().catch(() => {});
+            }
+        }
+
+        const petsAnim = document.getElementById('pets-centro-animado');
+        petsAnim.classList.add('visivel');
+
+        setTimeout(() => {
+            petsAnim.classList.remove('visivel');
+            if (callbackProxima) callbackProxima();
+        }, 1800);
+    }
+
+    function avancarIntroducao() {
+        iniciarMusicaAtomatica();
+        etapaIntro++;
+
+        const box = document.getElementById('introContentBox');
+        const titulo = document.getElementById('introTitulo');
+        const btn = document.getElementById('btnAvancarIntro');
+
+        if (etapaIntro === 2) {
+            box.className = 'intro-content pos-2-direita';
+            telaIntroContainer.style.backgroundImage = "url('fundo_intro2.jpg')";
+            titulo.className = 'titulo-alerta-laranja';
+            titulo.innerText = 'LINHA DE PRODUÇÃO PARADA!';
+            document.getElementById('introCorpoTexto').innerHTML = 
+                '<p>"A máquina principal parou repentinamente. Preciso entregar um lote de peças para o nosso cliente e não posso atrasar."</p>' +
+                '<span class="pergunta-destaque-amarela">"Você me ajuda a achar qual que é o problema da máquina?"</span>';
+        } else if (etapaIntro === 3) {
+            box.className = 'intro-content pos-3-esquerda';
+            telaIntroContainer.style.backgroundImage = "url('fundo_intro3.jpg')";
+            titulo.className = 'titulo-alerta-vermelho';
+            titulo.innerText = 'COMPONENTES AFETADOS';
+            document.getElementById('introCorpoTexto').innerHTML = '<p>"Deu problema em vários componentes da linha pneumática. Preciso revisar todos para liberar."</p>';
+            document.getElementById('introChecklist').style.display = 'block';
+            document.getElementById('textoBtnIntro').innerText = 'CONTINUAR';
+            btn.classList.add('btn-verde-neon-vibrante');
+        } else if (etapaIntro === 4) {
+            titulo.className = 'titulo-alerta-amarelo';
+            titulo.innerText = 'IDENTIFICAÇÃO DO OPERADOR';
+            document.getElementById('introChecklist').style.display = 'none';
+            document.getElementById('introCorpoTexto').innerHTML = `
+                <div class="modal-cadastro">
+                    <p class="texto-cadastro-industrial">Digite o seu nome para registrar o seu placar e ganhar o seu cupom na MDG Automação:</p>
+                    <input type="text" id="inputNomeOperador" class="input-nome-usuario" placeholder="Seu Nome..." autocomplete="off">
+                </div>
+            `;
+            document.getElementById('textoBtnIntro').innerText = 'INICIAR JOGO!';
+            etapaIntro = 5;
+        } else if (etapaIntro === 6) {
+            const inputVal = document.getElementById('inputNomeOperador').value.trim();
+            nomeJogador = inputVal !== "" ? inputVal : "Operador";
+            
+            telaIntroContainer.style.opacity = '0';
+            telaIntroContainer.style.transition = 'opacity 0.6s ease';
+            setTimeout(() => { telaIntroContainer.style.display = 'none'; }, 600);
+        } else if (etapaIntro === 5) {
+            const inputVal = document.getElementById('inputNomeOperador').value.trim();
+            if (inputVal === "") {
+                alert("Por favor, digite o seu nome para continuar!");
+                return;
+            }
+            etapaIntro = 6;
+            avancarIntroducao();
+        }
+    }
+
+    const coordenadasEstacoes = {
+        1: { top: '50%', left: '28%' }, 2: { top: '41%', left: '35%' }, 3: { top: '32%', left: '42%' },
+        4: { top: '26%', left: '49%' }, 5: { top: '24%', left: '58%' }, 6: { top: '29%', left: '66%' },
+        7: { top: '37%', left: '73%' }, 8: { top: '45%', left: '80%' }, 9: { top: '54%', left: '76%' }, 10: { top: '60%', left: '68%' }
+    };
+
+    function moverAvatar(numeroEstacao) {
+        const coord = coordenadasEstacoes[numeroEstacao];
+        if (coord) {
+            avatar.classList.add('andando');
+            avatar.style.top = coord.top;
+            avatar.style.left = coord.left;
+            setTimeout(() => { avatar.classList.remove('andando'); }, 1200);
+        }
+    }
+
+    for (let i = 1; i <= 10; i++) {
+        let p = document.getElementById('est' + i);
+        if (p && coordenadasEstacoes[i]) {
+            p.style.top = coordenadasEstacoes[i].top;
+            p.style.left = coordenadasEstacoes[i].left;
+        }
+    }
+
+    const posInicial = coordenadasEstacoes[1];
+    avatar.style.top = posInicial.top;
+    avatar.style.left = posInicial.left;
+
+    function fecharModal() { modal.style.display = 'none'; }
+    function fecharModalFora(event) { if (event.target === modal) fecharModal(); }
+
+    function abrirEstacao(numero) {
+        iniciarMusicaAtomatica();
+        
+        estacaoVisualizada = numero;
+        moverAvatar(numero); 
+
+        if (numero === 4) {
+            iniciarLigarPontos();
+            return;
+        }
+        if (numero === 5) {
+            abrirDialogoPainelEletropneumatico();
+            return;
+        }
+        
+        const dadosEstacao = perguntasEstacoes[numero] || {
+            pergunta: "Pergunta da Estação " + numero + " em breve...",
+            opcoes: [{ texto: "A) Opção de teste A", correta: true }]
+        };
+
+        const elTitulo = document.getElementById('titulo-estacao');
+        elTitulo.innerText = 'DIAGNÓSTICO TÉCNICO • ESTAÇÃO ' + numero;
+        elTitulo.style.color = coresEstacoes[numero] || '#00d2d3';
+        elTitulo.style.textShadow = '0 0 10px ' + (coresEstacoes[numero] || '#00d2d3') + '88';
+
+        document.getElementById('texto-estacao').innerHTML = dadosEstacao.pergunta;
+
+        modalCard.classList.remove('fundo-estacao-6', 'fundo-estacao-7', 'fundo-estacao-8');
+        if (numero === 6) {
+            modalCard.classList.add('fundo-estacao-6');
+        } else if (numero === 7) {
+            modalCard.classList.add('fundo-estacao-7');
+        } else if (numero === 8) {
+            modalCard.classList.add('fundo-estacao-8');
+        }
+
+        const containerOpcoes = document.getElementById('opcoes-container');
+        containerOpcoes.innerHTML = '';
+
+        if (dadosEstacao.tipo === "cacapalavras") {
+            renderizarCacaPalavras(containerOpcoes);
+        } else if (dadosEstacao.tipo === "memoria") {
+            renderizarJogoMemoria(containerOpcoes);
+        } else if (dadosEstacao.tipo === "ruido") {
+            renderizarPainelRuidoInterativo(containerOpcoes);
+        } else if (dadosEstacao.tipo === "coordenadas") {
+            renderizarDecodificadorCoordenadas(containerOpcoes);
+        } else if (dadosEstacao.tipo === "labirinto") {
+            renderizarLabirintoLudico(containerOpcoes);
+        } else if (dadosEstacao.tipo === "forca") {
+            renderizarJogoForca(containerOpcoes);
+        } else if (dadosEstacao.tipo === "tesouro") {
+            renderizarCacaTesouro(containerOpcoes);
+        } else {
+            dadosEstacao.opcoes.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-opcao';
+                btn.innerHTML = opt.texto;
+                btn.onclick = function() { verificarResposta(this, opt.correta, numero); };
+                containerOpcoes.appendChild(btn);
+            });
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    /* ESTAÇÃO 8: SINCRONIZAÇÃO DIRETA E EXATA DA FRASE VALVULA DIRECIONAL DUPLO SOLENOIDE */
+    let sequenciaAlvoPalavra = "VALVULADIRECIONALDUPLOSOLENOIDE";
+    let indiceCoordAtual = 0;
+    let matrizFixaMapeada = null; 
+
+    function renderizarDecodificadorCoordenadas(container) {
+        indiceCoordAtual = 0;
+        const wrap = document.createElement('div');
+        wrap.className = 'coordenadas-wrapper';
+
+        let letrasLinhas = ['A', 'B', 'C', 'D'];
+        
+        if (!matrizFixaMapeada) {
+            let arrayMapeado = [];
+            for (let i = 0; i < sequenciaAlvoPalavra.length; i++) {
+                let letraAtual = sequenciaAlvoPalavra[i];
+                let cRand = (i % 8) + 1;
+                let lRand = letrasLinhas[Math.floor(i / 8) % 4];
+                let coordStr = `${cRand}${lRand}`;
+                
+                arrayMapeado.push({
+                    letra: letraAtual,
+                    coord: coordStr,
+                    linha: lRand,
+                    col: cRand,
+                    idUnico: i
+                });
+            }
+            matrizFixaMapeada = arrayMapeado;
+        }
+
+        window.sequenciaEsperadaCoord = [...matrizFixaMapeada];
+
+        let htmlCabecalho = '<div class="cabecalho-coluna-num">#</div>';
+        for(let c=1; c<=8; c++) {
+            htmlCabecalho += `<div class="cabecalho-coluna-num">${c}</div>`;
+        }
+
+        let matrizCelulasHTML = htmlCabecalho;
+        let alfabetoCompleto = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        
+        letrasLinhas.forEach(linhaLetra => {
+            matrizCelulasHTML += `<div class="rotulo-linha-letra">${linhaLetra}</div>`;
+            for(let colNum=1; colNum<=8; colNum++) {
+                let itensNaCoord = matrizFixaMapeada.filter(item => item.linha === linhaLetra && item.col === colNum);
+                let letraExibir = itensNaCoord.length > 0 ? itensNaCoord[0].letra : alfabetoCompleto[(colNum * 3 + linhaLetra.charCodeAt(0)) % 26];
+                let idsString = itensNaCoord.map(it => it.idUnico).join(',');
+
+                matrizCelulasHTML += `<div class="celula-matriz-item" id="celMatriz_${linhaLetra}_${colNum}" onclick="clicarCelulaMatriz(this, '${letraExibir}', [${idsString}])">${letraExibir}</div>`;
+            }
+        });
+
+        let htmlCaixasTopo = '';
+        matrizFixaMapeada.forEach((item, idx) => {
+            htmlCaixasTopo += `
+                <div class="bloco-resposta-coord">
+                    <span class="coord-alvo-txt">${item.coord}</span>
+                    <span class="letra-preenchida-txt" id="slotCoord_${idx}">_</span>
+                </div>
+            `;
+        });
+
+        wrap.innerHTML = `
+            <p style="font-size:11px; color:#f1c40f; margin:0; text-align:center; font-weight:700;">Decodifique a frase técnica: <b>VALVULA DIRECIONAL DUPLO SOLENOIDE</b></p>
+            
+            <div class="caixas-resposta-topo">${htmlCaixasTopo}</div>
+
+            <div class="grid-matriz-coord" id="gridMatrizCoord">${matrizCelulasHTML}</div>
+        `;
+        container.appendChild(wrap);
+    }
+
+    function clicarCelulaMatriz(elementoCel, letraClicada, idsPermitidos) {
+        let proximoEsperado = window.sequenciaEsperadaCoord[indiceCoordAtual];
+
+        if (idsPermitidos.includes(proximoEsperado.idUnico)) {
+            document.getElementById(`slotCoord_${indiceCoordAtual}`).innerText = proximoEsperado.letra;
+            
+            elementoCel.style.backgroundColor = '#27ae60';
+            elementoCel.style.borderColor = '#2ecc71';
+            elementoCel.style.color = '#ffffff';
+            
+            setTimeout(() => {
+                elementoCel.style.backgroundColor = '';
+                elementoCel.style.borderColor = '';
+                elementoCel.style.color = '';
+            }, 250);
+
+            indiceCoordAtual++;
+            // LATIDO REMOVIDO DAQUI (APENAS AVANÇA A LETRA SEM SOM DE LATIDO)
+
+            if (indiceCoordAtual === sequenciaAlvoPalavra.length) {
+                let ganho = pontuarEstacao(8);
+                comemorarComPets(8, () => {
+                    estacaoAtual = 9;
+                    let est8 = document.getElementById('est8');
+                    if (est8) { est8.classList.remove('ativa'); est8.classList.add('concluida'); }
+                    let prox = document.getElementById('est9');
+                    if (prox) prox.classList.add('ativa');
+                    moverAvatar(9);
+                });
+            }
+        } else {
+            registrarErroEstacao(8);
+            somErro.currentTime = 0; somErro.volume = 0.7; somErro.play().catch(()=>{});
+            
+            indiceCoordAtual = 0;
+            for(let i=0; i<sequenciaAlvoPalavra.length; i++) {
+                let slot = document.getElementById(`slotCoord_${i}`);
+                if(slot) slot.innerText = "_";
+            }
+        }
+    }
+
+    /* ESTAÇÃO 7: PAINEL DE CLIQUE COM CAIXA DE LETRAS DESCARTADAS AO LADO */
+    function renderizarPainelRuidoInterativo(container) {
+        const wrap = document.createElement('div');
+        wrap.className = 'painel-ruido-wrapper';
+        
+        let matrizRuido = [
+            ['Q','E','L','Z','E','Q','T','R','O','W','P','K','J','Ç','X'],
+            ['N','K','E','U','J','M','Ç','A','T','I','Y','B','V','W','S'],
+            ['C','X','A','Y','E','L','B','E','T','R','Z','P','Q','M','N'],
+            ['O','H','I','D','R','A','U','L','I','C','A','K','X','J','W']
+        ];
+
+        let htmlGrid = '<div class="grid-painel-ruido" id="gridPainelRuido">';
+        for(let r=0; r<4; r++) {
+            for(let c=0; c<15; c++) {
+                let letra = matrizRuido[r][c];
+                htmlGrid += `<div class="celula-ruido" onclick="clicarLetraPainel(this, '${letra}')">${letra}</div>`;
+            }
+        }
+        htmlGrid += '</div>';
+
+        let letrasLixo = ['Q', 'Z', 'W', 'K', 'J', 'Ç', 'X', 'N', 'C', 'H', 'Y', 'B', 'S', 'M', 'P'];
+        let htmlChipsLixo = '';
+        letrasLixo.forEach(l => {
+            htmlChipsLixo += `<div class="chip-lixo">${l}</div>`;
+        });
+
+        let alvo1 = "ELETROPNEUMATICA";
+        let alvo2 = "ELETROHIDRAULICA";
+
+        let htmlSlots1 = '';
+        for(let i=0; i<alvo1.length; i++) {
+            htmlSlots1 += `<div class="letra-slot" id="slot1_${i}">_</div>`;
+        }
+
+        let htmlSlots2 = '';
+        for(let i=0; i<alvo2.length; i++) {
+            htmlSlots2 += `<div class="letra-slot" id="slot2_${i}">_</div>`;
+        }
+
+        wrap.innerHTML = `
+            <p style="font-size:12px; color:#f1c40f; margin:0 0 4px 0; text-align:center; font-weight:700;">Clique nas letras corretas do painel para formar as palavras mestras:</p>
+            
+            <div class="painel-layout-flex">
+                ${htmlGrid}
+                <div class="painel-letras-descartadas">
+                    <h4>🗑️ Descartar / Ignorar</h4>
+                    <div class="container-chips-lixo">${htmlChipsLixo}</div>
+                </div>
+            </div>
+
+            <div class="palavras-destrino-container">
+                <div class="linha-palavra-alvo">
+                    <span class="titulo-alvo">1ª Palavra:</span>
+                    <div class="caixas-letras-alvo">${htmlSlots1}</div>
+                </div>
+                <div class="linha-palavra-alvo">
+                    <span class="titulo-alvo">2ª Palavra:</span>
+                    <div class="caixas-letras-alvo">${htmlSlots2}</div>
+                </div>
+            </div>
+        `;
+        container.appendChild(wrap);
+    }
+
+    let indiceProgresso1 = 0;
+    let indiceProgresso2 = 0;
+    const alvoStr1 = "ELETROPNEUMATICA";
+    const alvoStr2 = "ELETROHIDRAULICA";
+
+    function clicarLetraPainel(elementoCel, letra) {
+        if (elementoCel.classList.contains('clicada-certa')) return;
+
+        if (indiceProgresso1 < alvoStr1.length && letra === alvoStr1[indiceProgresso1]) {
+            document.getElementById(`slot1_${indiceProgresso1}`).innerText = letra;
+            elementoCel.classList.add('clicada-certa');
+            indiceProgresso1++;
+            // LATIDO REMOVIDO DAQUI TAMBÉM
+            verificarConclusaoPainel();
+            return;
+        }
+
+        if (indiceProgresso1 === alvoStr1.length && indiceProgresso2 < alvoStr2.length && letra === alvoStr2[indiceProgresso2]) {
+            document.getElementById(`slot2_${indiceProgresso2}`).innerText = letra;
+            elementoCel.classList.add('clicada-certa');
+            indiceProgresso2++;
+            // LATIDO REMOVIDO DAQUI TAMBÉM
+            verificarConclusaoPainel();
+            return;
+        }
+
+        registrarErroEstacao(7);
+        somErro.currentTime = 0; somErro.volume = 0.6; somErro.play().catch(()=>{});
+        elementoCel.style.backgroundColor = '#c0392b';
+        setTimeout(() => {
+            if (!elementoCel.classList.contains('clicada-certa')) {
+                elementoCel.style.backgroundColor = '';
+            }
+        }, 400);
+    }
+
+    function verificarConclusaoPainel() {
+        if (indiceProgresso1 === alvoStr1.length && indiceProgresso2 === alvoStr2.length) {
+            let ganho = pontuarEstacao(7);
+            comemorarComPets(7, () => {
+                estacaoAtual = 8;
+                let est7 = document.getElementById('est7');
+                if (est7) { est7.classList.remove('ativa'); est7.classList.add('concluida'); }
+                let prox = document.getElementById('est8');
+                if (prox) prox.classList.add('ativa');
+                moverAvatar(8);
+                indiceProgresso1 = 0;
+                indiceProgresso2 = 0;
+            });
+        }
+    }
+
+    /* ESTAÇÃO 9: JOGO DA FORCA (PALAVRA SECRETA: REGULADOR) */
+    function renderizarJogoForca(container) {
+        const palavraSecreta = "REGULADOR";
+        let letrasCorretas = new Set();
+
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `
+            <h3 class="titulo-ludico">🧩 JOGO DA FORCA: DESCUBRA O COMPONENTE</h3>
+            <p class="sub-ludico">Descubra o componente que comanda a regulagem e o fluxo de ar para o cilindro!</p>
+            <div class="palavra-escondida-container" id="caixasPalavra"></div>
+            <div class="teclado-letras" id="tecladoForca"></div>
+        `;
+        container.appendChild(wrap);
+
+        const containerCaixas = wrap.querySelector('#caixasPalavra');
+        const containerTeclado = wrap.querySelector('#tecladoForca');
+
+        function atualizarCaixas() {
+            containerCaixas.innerHTML = '';
+            let ganhoTotal = true;
+            for (let i = 0; i < palavraSecreta.length; i++) {
+                let l = palavraSecreta[i];
+                const caixa = document.createElement('div');
+                caixa.className = 'letra-caixa';
+                if (letrasCorretas.has(l)) {
+                    caixa.innerText = l;
+                } else {
+                    caixa.innerText = '_';
+                    ganhoTotal = false;
+                }
+                containerCaixas.appendChild(caixa);
+            }
+
+            if (ganhoTotal) {
+                let ganho = pontuarEstacao(9);
+                comemorarComPets(9, () => {
+                    estacaoAtual = 10;
+                    let est9 = document.getElementById('est9');
+                    if (est9) { est9.classList.remove('ativa'); est9.classList.add('concluida'); }
+                    let prox = document.getElementById('est10');
+                    if (prox) prox.classList.add('ativa');
+                    moverAvatar(10);
+                });
+            }
+        }
+
+        const alfabeto = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        for (let char of alfabeto) {
+            const btn = document.createElement('button');
+            btn.className = 'btn-tecla';
+            btn.innerText = char;
+            btn.onclick = function() {
+                btn.classList.add('usada');
+                if (palavraSecreta.includes(char)) {
+                    letrasCorretas.add(char);
+                    atualizarCaixas();
+                } else {
+                    registrarErroEstacao(9);
+                    somErro.currentTime = 0; somErro.volume = 0.6; somErro.play().catch(()=>{});
+                }
+            };
+            containerTeclado.appendChild(btn);
+        }
+        atualizarCaixas();
+    }
+
+    /* ESTAÇÃO 10: CAÇA-TESOURO DA FÁBRICA COM CUPOM FINAL */
+    function renderizarCacaTesouro(container) {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `
+            <h3 class="titulo-ludico">💎 CAÇA-TESOURO MDG</h3>
+            <p class="sub-ludico">Onde está guardada a chave mestra para liberação total da fábrica?</p>
+            <div class="tesouro-grid">
+                <div class="tesouro-card" onclick="validarTesouro(this, false)">📦 Dentro da caixa de ferramentas desorganizada</div>
+                <div class="tesouro-card" onclick="validarTesouro(this, true)">⭐ No painel principal de automação MDG</div>
+                <div class="tesouro-card" onclick="validarTesouro(this, false)">🗄️ Na gaveta de papéis velhos do escritório</div>
+                <div class="tesouro-card" onclick="validarTesouro(this, false)">🗑 No cesto de descarte de mangueiras</div>
+            </div>
+        `;
+        container.appendChild(wrap);
+    }
+
+    function validarTesouro(elemento, correto) {
+        if (correto) {
+            let ganho = pontuarEstacao(10);
+            elemento.classList.add('correto');
+            
+            comemorarComPets(10, () => {
+                let est10 = document.getElementById('est10');
+                if (est10) { est10.classList.remove('ativa'); est10.classList.add('concluida'); }
+                
+                let numSequencial = "001"; 
+                let percentualDesconto = Math.min(10, Math.max(1, Math.round(totalMoedas / 10)));
+                let codigoCupom = `${numSequencial}-${nomeJogador}-${percentualDesconto}%`.toUpperCase();
+                
+                let linkZap = `https://wa.me/5511952489634?text=Olá,%20MDG!%20Joguei%20o%20game,%20meu%20nome%20é%20${encodeURIComponent(nomeJogador)}%20e%20meu%20cupom%20é%20${encodeURIComponent(codigoCupom)}`;
+
+                document.getElementById('titulo-estacao').innerText = '🏆 MISSÃO CUMPRIDA • VITÓRIA!';
+                document.getElementById('texto-estacao').innerHTML = `Parabéns, <b>${nomeJogador}</b>! Você concluiu todas as estações e acumulou <b>${totalMoedas} moedas</b>!`;
+                
+                document.getElementById('opcoes-container').innerHTML = `
+                    <div class="card-final-cupom">
+                        <h3 style="color: #f1c40f; margin:0 0 10px 0; font-family:'Orbitron',sans-serif;">DESCONTO CONQUISTADO: ${percentualDesconto}%</h3>
+                        <p style="margin:0; font-size:15px; color:#fff;">O seu cupom exclusivo de atendimento na MDG Automação é:</p>
+                        <div class="cupom-destaque">${codigoCupom}</div>
+                        <p style="font-size:13px; color:#a4b0be; margin:0 0 15px 0;">Tire um print desta tela e envie direto no WhatsApp da MDG Automação para validar seu desconto!</p>
+                        <a href="${linkZap}" target="_blank" style="text-decoration:none;">
+                            <button class="btn-whatsapp"><span>📱 Enviar Print no WhatsApp</span></button>
+                        </a>
+                    </div>
+                `;
+                modal.style.display = 'flex';
+            });
+        } else {
+            registrarErroEstacao(10);
+            elemento.classList.add('errado');
+            somErro.currentTime = 0; somErro.volume = 0.7; somErro.play().catch(()=>{});
+        }
+    }
+
+    /* JOGO DA MEMÓRIA INDUSTRIAL (ESTAÇÃO 6) */
+    function renderizarJogoMemoria(container) {
+        const itensMemoria = [
+            { id: 'atuador', html: "<img src='simb_atuador.png' class='icone-grande-memoria'>" },
+            { id: 'atuador', html: "<img src='simb_atuador.png' class='icone-grande-memoria'>" },
+            { id: 'atuador', html: "<img src='simb_atuador.png' class='icone-grande-memoria'>" },
+            { id: 'valvula', html: "<img src='simb_valvula.png' class='icone-grande-memoria'>" },
+            { id: 'valvula', html: "<img src='simb_valvula.png' class='icone-grande-memoria'>" },
+            { id: 'valvula', html: "<img src='simb_valvula.png' class='icone-grande-memoria'>" },
+            { id: 'lubrifil', html: "<img src='simb_lubrifil.png' class='icone-grande-memoria'>" },
+            { id: 'lubrifil', html: "<img src='simb_lubrifil.png' class='icone-grande-memoria'>" },
+            { id: 'lubrifil', html: "<img src='simb_lubrifil.png' class='icone-grande-memoria'>" },
+            { id: 'mangueira', html: "<img src='simb_mangueira.png' class='icone-grande-memoria'>" },
+            { id: 'mangueira', html: "<img src='simb_mangueira.png' class='icone-grande-memoria'>" },
+            { id: 'mangueira', html: "<img src='simb_mangueira.png' class='icone-grande-memoria'>" }
+        ];
+
+        let cartasEmbaralhadas = [...itensMemoria].sort(() => Math.random() - 0.5);
+        const wrapperMemoria = document.createElement('div');
+        wrapperMemoria.innerHTML = `<h3 class="titulo-jogo-memoria">JOGO DA MEMÓRIA INDUSTRIAL</h3>`;
+        const gridMemoria = document.createElement('div');
+        gridMemoria.className = 'memoria-container';
+
+        let cartasReveladas = [];
+        let combinadasTotal = 0;
+        let bloqueioCliques = false;
+
+        cartasEmbaralhadas.forEach((item) => {
+            const carta = document.createElement('div');
+            carta.className = 'carta-memoria';
+            carta.dataset.id = item.id;
+            carta.innerHTML = `<div class="carta-verso-mdg"><span class="texto-verso-mdg">MDG</span></div>`;
+
+            carta.onclick = function() {
+                if (bloqueioCliques || carta.classList.contains('revelada') || carta.classList.contains('combinada')) return;
+                carta.classList.add('revelada');
+                carta.innerHTML = item.html;
+                cartasReveladas.push(carta);
+
+                if (cartasReveladas.length === 3) {
+                    bloqueioCliques = true;
+                    let id1 = cartasReveladas[0].dataset.id;
+                    let id2 = cartasReveladas[1].dataset.id;
+                    let id3 = cartasReveladas[2].dataset.id;
+
+                    if (id1 === id2 && id2 === id3) {
+                        latido.currentTime = 0; latido.volume = 0.8; latido.play().catch(()=>{});
+                        cartasReveladas.forEach(c => { c.classList.add('combinada'); c.classList.remove('revelada'); });
+                        combinadasTotal += 3;
+                        cartasReveladas = [];
+                        bloqueioCliques = false;
+
+                        if (combinadasTotal === 12) {
+                            let ganho = pontuarEstacao(6);
+                            comemorarComPets(6, () => {
+                                estacaoAtual = 7;
+                                let est6El = document.getElementById('est6');
+                                if (est6El) { est6El.classList.remove('ativa'); est6El.classList.add('concluida'); }
+                                let proxEst = document.getElementById('est7');
+                                if (proxEst) proxEst.classList.add('ativa');
+                                moverAvatar(7);
+                            });
+                        }
+                    } else {
+                        registrarErroEstacao(6);
+                        somErro.currentTime = 0; somErro.volume = 0.6; somErro.play().catch(()=>{});
+                        setTimeout(() => {
+                            cartasReveladas.forEach(c => {
+                                c.classList.remove('revelada');
+                                c.innerHTML = `<div class="carta-verso-mdg"><span class="texto-verso-mdg">MDG</span></div>`;
+                            });
+                            cartasReveladas = [];
+                            bloqueioCliques = false;
+                        }, 900);
+                    }
+                }
+            };
+            gridMemoria.appendChild(carta);
+        });
+
+        wrapperMemoria.appendChild(gridMemoria);
+        container.appendChild(wrapperMemoria);
+    }
+
+    /* PAINEL ELETROPNEUMÁTICO (ESTAÇÃO 5) */
+    function abrirDialogoPainelEletropneumatico() {
+        const elTitulo = document.getElementById('titulo-estacao');
+        elTitulo.innerText = 'DIAGNÓSTICO TÉCNICO • ESTAÇÃO 5';
+        elTitulo.style.color = coresEstacoes[5];
+        elTitulo.style.textShadow = '0 0 10px ' + coresEstacoes[5] + '88';
+
+        document.getElementById('texto-estacao').innerHTML = 
+            "Chegamos ao setor de controle da máquina! O sistema principal está travado por anomalia eletropneumática. Precisamos abrir o gabinete de controle para auditar os circuitos de comando.";
+
+        const containerOpcoes = document.getElementById('opcoes-container');
+        containerOpcoes.innerHTML = `
+            <div class="painel-industrial-abertura">
+                <div class="painel-status-linha">
+                    <p class="painel-status-texto">STATUS: AGUARDANDO LIBERAÇÃO DO OPERADOR</p>
+                    <div class="led-status"></div>
+                </div>
+                <button class="btn-painel-eletrico" onclick="entrarPainelEletropneumatico()">
+                    <span>⚡ ABRIR PAINEL ELETROPNEUMÁTICO</span>
+                </button>
+            </div>
+        `;
+        modal.style.display = 'flex';
+    }
+
+    function entrarPainelEletropneumatico() {
+        modal.style.display = 'none';
+        document.getElementById('peTextoProblema').innerHTML = 
+            "⚠️ FALHA NA LINHA: O atuador / cilindro (<img src='simb_atuador.png' class='icone-grande'>) avança lentamente e perde força no final do curso.";
+
+        const grid = document.getElementById('peGridOpcoes');
+        grid.innerHTML = `
+            <button class="pe-btn-diagnostico" onclick="verificarFalhaPainel(this, false)"><span>1. Falta de óleo no reservatório da válvula</span> <img src='simb_valvula.png' class='icone-grande'></button>
+            <button class="pe-btn-diagnostico" onclick="verificarFalhaPainel(this, true)"><span>2. Regulador de pressão descalibrado ou vazamento no atuador</span> <img src='simb_atuador.png' class='icone-grande'></button>
+            <button class="pe-btn-diagnostico" onclick="verificarFalhaPainel(this, false)"><span>3. Inversão dos tubos na mangueira</span> <img src='simb_mangueira.png' class='icone-grande'></button>
+            <button class="pe-btn-diagnostico" onclick="verificarFalhaPainel(this, false)"><span>4. Troca da mangueira por tubo rígido</span> <img src='simb_mangueira.png' class='icone-grande'></button>
+        `;
+        telaPainelEletropneumatico.style.display = 'flex';
+    }
+
+    function fecharPainelEletropneumatico() { telaPainelEletropneumatico.style.display = 'none'; }
+
+    function verificarFalhaPainel(botao, correta) {
+        if (correta) {
+            let ganho = pontuarEstacao(5);
+            botao.classList.add('correto');
+            comemorarComPets(5, () => {
+                estacaoAtual = 6;
+                let est5El = document.getElementById('est5');
+                if (est5El) { est5El.classList.remove('ativa'); est5El.classList.add('concluida'); }
+                let proxEst = document.getElementById('est6');
+                if (proxEst) proxEst.classList.add('ativa');
+                moverAvatar(6);
+            });
+        } else {
+            registrarErroEstacao(5);
+            botao.classList.add('incorreto');
+            somErro.currentTime = 0; somErro.volume = 0.7; somErro.play().catch(() => {});
+        }
+    }
+
+    /* LIGAR OS PONTOS (ESTAÇÃO 4) */
+    let arrastandoOrigem = null;
+    let conexoesCertas = 0;
+
+    function iniciarLigarPontos() {
+        conexoesCertas = 0;
+        arrastandoOrigem = null;
+        document.getElementById('linhasConcluidas').innerHTML = '';
+        document.getElementById('linhaDinamica').style.display = 'none';
+        document.querySelectorAll('.lp-bloco').forEach(b => {
+            b.classList.remove('conectado');
+            b.style.pointerEvents = 'auto';
+        });
+        telaLigarPontos.style.display = 'flex';
+    }
+
+    function fecharLigarPontos() { telaLigarPontos.style.display = 'none'; }
+
+    function iniciarArraste(event, idOrigem) {
+        event.stopPropagation();
+        arrastandoOrigem = idOrigem;
+        let svgCanvas = document.getElementById('lpSvgCanvas');
+        let rectSvg = svgCanvas.getBoundingClientRect();
+        let pontoEl = event.target;
+        let rectPonto = pontoEl.getBoundingClientRect();
+        let x = rectPonto.left + rectPonto.width / 2 - rectSvg.left;
+        let y = rectPonto.top + rectPonto.height / 2 - rectSvg.top;
+        let linhaDin = document.getElementById('linhaDinamica');
+        linhaDin.setAttribute('x1', x); linhaDin.setAttribute('y1', y);
+        linhaDin.setAttribute('x2', x); linhaDin.setAttribute('y2', y);
+        linhaDin.style.display = 'block';
+    }
+
+    function atualizarLinhaMouse(event) {
+        if (!arrastandoOrigem) return;
+        let svgCanvas = document.getElementById('lpSvgCanvas');
+        let rectSvg = svgCanvas.getBoundingClientRect();
+        let x2 = event.clientX - rectSvg.left;
+        let y2 = event.clientY - rectSvg.top;
+        let linhaDin = document.getElementById('linhaDinamica');
+        linhaDin.setAttribute('x2', x2); linhaDin.setAttribute('y2', y2);
+    }
+
+    function soltarAlvo(event, idAlvo) {
+        event.stopPropagation();
+        if (!arrastandoOrigem) return;
+        let origemId = arrastandoOrigem;
+        arrastandoOrigem = null;
+        document.getElementById('linhaDinamica').style.display = 'none';
+
+        let blocoOrigemEl = document.querySelector(`#colunaOrigem [data-id='${origemId}']`);
+        let blocoAlvoEl = document.querySelector(`#colunaDestino [data-alvo='${idAlvo}']`);
+        let svgCanvas = document.getElementById('lpSvgCanvas');
+        let rectSvg = svgCanvas.getBoundingClientRect();
+        let rectOrigem = blocoOrigemEl.querySelector('.lp-ponto').getBoundingClientRect();
+        let rectAlvo = blocoAlvoEl.querySelector('.lp-ponto').getBoundingClientRect();
+
+        let x1 = rectOrigem.left + rectOrigem.width / 2 - rectSvg.left;
+        let y1 = rectOrigem.top + rectOrigem.height / 2 - rectSvg.top;
+        let x2 = rectAlvo.left + rectAlvo.width / 2 - rectSvg.left;
+        let y2 = rectAlvo.top + rectAlvo.height / 2 - rectSvg.top;
+
+        let sequenciaCorreta = { 'compressor': 'lubrifil', 'lubrifil': 'valvula', 'valvula': 'cilindro', 'cilindro': 'fim' };
+        let linha = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        linha.setAttribute('x1', x1); linha.setAttribute('y1', y1);
+        linha.setAttribute('x2', x2); linha.setAttribute('y2', y2);
+        linha.setAttribute('stroke-width', '4'); linha.setAttribute('stroke-linecap', 'round');
+
+        if (sequenciaCorreta[origemId] === idAlvo) {
+            linha.setAttribute('stroke', '#2ecc71');
+            document.getElementById('linhasConcluidas').appendChild(linha);
+            blocoOrigemEl.classList.add('conectado'); blocoOrigemEl.style.pointerEvents = 'none';
+            blocoAlvoEl.classList.add('conectado'); blocoAlvoEl.style.pointerEvents = 'none';
+            conexoesCertas++;
+            latido.currentTime = 0; latido.volume = 0.8; latido.play();
+
+            if (conexoesCertas === 4) {
+                let ganho = pontuarEstacao(4);
+                comemorarComPets(4, () => {
+                    estacaoAtual = 5;
+                    let est4El = document.getElementById('est4');
+                    if (est4El) { est4El.classList.remove('ativa'); est4El.classList.add('concluida'); }
+                    let proxEst = document.getElementById('est5');
+                    if (proxEst) proxEst.classList.add('ativa');
+                    moverAvatar(5);
+                });
+            }
+        } else {
+            registrarErroEstacao(4);
+            linha.setAttribute('stroke', '#e74c3c');
+            document.getElementById('linhasConcluidas').appendChild(linha);
+            somErro.currentTime = 0; somErro.volume = 0.6; somErro.play().catch(() => {});
+            setTimeout(() => { linha.remove(); }, 600);
+        }
+    }
+
+    function soltarMouseLinha() {
+        if (arrastandoOrigem) { arrastandoOrigem = null; document.getElementById('linhaDinamica').style.display = 'none'; }
+    }
+
+    /* CAÇA-PALAVRAS (ESTAÇÃO 3) */
+    function renderizarCacaPalavras(container) {
+        const medicoes = [
+            { palavra: "MANOMETRO", r: 0, c: 1, dir: 'H' }, { palavra: "FILTRO", r: 2, c: 2, dir: 'H' },
+            { palavra: "ATUADOR", r: 4, c: 2, dir: 'H' }, { palavra: "VALVULA", r: 6, c: 1, dir: 'H' },
+            { palavra: "SOLENOIDE", r: 8, c: 1, dir: 'H' }, { palavra: "CONEXAO", r: 10, c: 2, dir: 'H' },
+            { palavra: "POLIURETANO", r: 0, c: 0, dir: 'V' }, { palavra: "ARTICULACAO", r: 0, c: 11, dir: 'V' }
+        ];
+        
+        let palavrasEncontradasSet = new Set();
+        let celulasEncontradasGlobal = new Set();
+        const wrapper = document.createElement('div');
+        wrapper.className = 'caca-palavras-wrapper';
+
+        let matriz = Array(12).fill(0).map(() => Array(12).fill(''));
+        medicoes.forEach(m => {
+            for (let i = 0; i < m.palavra.length; i++) {
+                let rr = m.dir === 'H' ? m.r : m.r + i;
+                let cc = m.dir === 'H' ? m.c + i : m.c;
+                matriz[rr][cc] = m.palavra[i];
+            }
+        });
+
+        const letrasAlfabeto = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        for (let r = 0; r < 12; r++) {
+            for (let c = 0; c < 12; c++) {
+                if (matriz[r][c] === '') matriz[r][c] = letrasAlfabeto[Math.floor(Math.random() * letrasAlfabeto.length)];
+            }
+        }
+
+        const gridDiv = document.createElement('div');
+        gridDiv.className = 'grid-letras';
+        let selecionando = false;
+        let celulasSelecionadas = [];
+
+        for (let r = 0; r < 12; r++) {
+            for (let c = 0; c < 12; c++) {
+                const cel = document.createElement('div');
+                cel.className = 'celula-letra';
+                cel.innerText = matriz[r][c];
+                cel.dataset.r = r; cel.dataset.c = c;
+
+                cel.onmousedown = function(e) {
+                    e.preventDefault(); selecionando = true; limparSelecaoTemporaria(); adicionarCelulaSelecionada(cel);
+                };
+                cel.onmouseenter = function() { if (selecionando) adicionarCelulaSelecionada(cel); };
+                gridDiv.appendChild(cel);
+            }
+        }
+
+        document.addEventListener('mouseup', function() { if (selecionando) { selecionando = false; validarSelecaoAtual(); } });
+
+        function adicionarCelulaSelecionada(cel) {
+            if (!cel.classList.contains('encontrada') && !celuAsSelecionadasContem(cel)) {
+                cel.classList.add('selecionada'); celulasSelecionadas.push(cel);
+            }
+        }
+        function celuAsSelecionadasContem(cel) { return celulasSelecionadas.includes(cel); }
+        function limparSelecaoTemporaria() {
+            gridDiv.querySelectorAll('.celula-letra.selecionada').forEach(el => el.classList.remove('selecionada'));
+            celulasSelecionadas = [];
+        }
+
+        function validarSelecaoAtual() {
+            if (celulasSelecionadas.length === 0) return;
+            let palavraFormada = celulasSelecionadas.map(el => el.innerText).join('');
+            let palavraInvertida = [...celulasSelecionadas].reverse().map(el => el.innerText).join('');
+
+            let indiceMatch = -1;
+            medicoes.forEach((m, idx) => {
+                if (!palavrasEncontradasSet.has(idx)) {
+                    if (m.palavra === palavraFormada || m.palavra === palavraInvertida) {
+                        let celulasGabarito = [];
+                        for (let i = 0; i < m.palavra.length; i++) {
+                            let rr = m.dir === 'H' ? m.r : m.r + i;
+                            let cc = m.dir === 'H' ? m.c + i : m.c;
+                            celulasGabarito.push(gridDiv.querySelector(`[data-r='${rr}'][data-c='${cc}']`));
+                        }
+                        if (celulasGabarito.every(g => celulasSelecionadas.includes(g)) && celulasSelecionadas.length === celulasGabarito.length) {
+                            indiceMatch = idx;
+                        }
+                    }
+                }
+            });
+
+            if (indiceMatch !== -1) {
+                palavrasEncontradasSet.add(indiceMatch);
+                celulasSelecionadas.forEach(el => { el.classList.remove('selecionada'); el.classList.add('encontrada'); celulasEncontradasGlobal.add(el); });
+                document.getElementById('alvo-' + indiceMatch).classList.add('encontrada-alvo');
+                if (palavrasEncontradasSet.size === 8) {
+                    setTimeout(() => { concluirEstacaoCaçaPalavras(); }, 600);
+                }
+            } else {
+                registrarErroEstacao(3);
+                celulasSelecionadas.forEach(el => {
+                    el.classList.remove('selecionada'); el.classList.add('erro-pisca');
+                    setTimeout(() => { el.classList.remove('erro-pisca'); }, 500);
+                });
+                somErro.currentTime = 0; somErro.volume = 0.5; somErro.play().catch(() => {});
+            }
+            celulasSelecionadas = [];
+        }
+
+        const listaDiv = document.createElement('div');
+        listaDiv.className = 'lista-palavras-alvo';
+        listaDiv.innerHTML = '<h4>ITENS INDUSTRIAL</h4>';
+        const nomesExibicao = ["MANÔMETRO", "FILTRO", "ATUADOR", "VÁLVULA", "SOLENOIDE", "CONEXÃO", "POLIURETANO", "ARTICULAÇÃO"];
+        nomesExibicao.forEach((nome, idx) => {
+            const item = document.createElement('div');
+            item.className = 'item-alvo-palavra'; item.id = 'alvo-' + idx; item.innerText = "• " + nome;
+            listaDiv.appendChild(item);
+        });
+
+        wrapper.appendChild(gridDiv); wrapper.appendChild(listaDiv); container.appendChild(wrapper);
+    }
+
+    function concluirEstacaoCaçaPalavras() {
+        let ganho = pontuarEstacao(3);
+        comemorarComPets(3, () => {
+            let estConcluida = document.getElementById('est3');
+            if (estConcluida) { estConcluida.classList.remove('ativa'); estConcluida.classList.add('concluida'); }
+            if (estacaoAtual === 3) estacaoAtual = 4;
+            
+            telaTransicao3.style.display = 'flex';
+            setTimeout(() => {
+                telaTransicao3.style.display = 'none';
+                let proxEst = document.getElementById('est4');
+                if (proxEst) proxEst.classList.add('ativa');
+                moverAvatar(4);
+            }, 7000);
+        });
+    }
+
+    function verificarResposta(elementoBotao, correta, numeroEstacao) {
+        iniciarMusicaAtomatica();
+        if (correta) {
+            let ganho = pontuarEstacao(numeroEstacao);
+            elementoBotao.classList.add('correta');
+            
+            comemorarComPets(numeroEstacao, () => {
+                let estConcluida = document.getElementById('est' + estacaoVisualizada);
+                if (estConcluida) { estConcluida.classList.remove('ativa'); estConcluida.classList.add('concluida'); }
+                if (estacaoVisualizada === estacaoAtual) estacaoAtual++;
+                
+                if (estacaoAtual <= 10) {
+                    let proxEst = document.getElementById('est' + estacaoAtual);
+                    if (proxEst) proxEst.classList.add('ativa');
+                    moverAvatar(estacaoAtual);
+                }
+            });
+        } else {
+            registrarErroEstacao(numeroEstacao);
+            elementoBotao.classList.add('incorreta');
+            somErro.currentTime = 0; somErro.volume = 0.7; somErro.play().catch(() => {});
+        }
+    }
+</script>
+
+</body>
+</html>
